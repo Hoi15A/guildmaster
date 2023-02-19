@@ -15,6 +15,14 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v3
 
+      # Building
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Run build with Gradle Wrapper
+        run: ./gradlew build
+
+      # Publishing
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
