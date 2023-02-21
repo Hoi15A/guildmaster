@@ -39,6 +39,7 @@ class Splatoon : GuildCommand {
             ) {
                 subCommand("schedule", "Get a schedule for a gamemode") {
                     string("mode", "A splatoon gamemode") {
+                        required = true
                         for (mode in GameModes.values()) {
                             choice(mode.displayName, mode.name)
                         }
