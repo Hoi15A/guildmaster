@@ -31,7 +31,7 @@ val client = HttpClient(CIO) {
 }
 
 class Splatoon3 {
-    fun getSchedules(): Schedules {
+    fun getSchedules(): Schedules? {
         var data: Schedules? = null
         runBlocking {
             val resp = client.get("data/schedules.json")
@@ -41,6 +41,6 @@ class Splatoon3 {
                 println(e)
             }
         }
-        return data!!
+        return data
     }
 }

@@ -18,9 +18,9 @@ import util.splatoon.Splatoon3
 class Splatoon : GuildCommand {
     enum class GameModes(val displayName: String, val color: Color, val icon: String) {
         TURF_WAR("Turf War", Color(209, 213, 40), "https://gamepedia.cursecdn.com/splatoon_gamepedia/thumb/a/a2/Turf-wars-icon.png/350px-Turf-wars-icon.png"),
-        ANARCHY_OPEN("Anarchy Battles (Open)", Color(0, 0, 0), "https://gamepedia.cursecdn.com/splatoon_gamepedia/f/f2/Ranked-battle-icon.png"),
-        ANARCHY_SERIES("Anarchy Battles (Series)", Color(0, 0, 0), "https://gamepedia.cursecdn.com/splatoon_gamepedia/f/f2/Ranked-battle-icon.png"),
-        X_BATTLE("X Battles", Color(0, 0, 0), "https://i.imgur.com/uSxa2hz.png")
+        ANARCHY_OPEN("Anarchy Battles (Open)", Color(245, 73, 16), "https://gamepedia.cursecdn.com/splatoon_gamepedia/f/f2/Ranked-battle-icon.png"),
+        ANARCHY_SERIES("Anarchy Battles (Series)", Color(245, 73, 16), "https://gamepedia.cursecdn.com/splatoon_gamepedia/f/f2/Ranked-battle-icon.png"),
+        X_BATTLE("X Battles", Color(14, 219, 155), "https://i.imgur.com/uSxa2hz.png")
     }
 
     override val name = "splatoon"
@@ -59,30 +59,30 @@ class Splatoon : GuildCommand {
     }
 
     private val splat = Splatoon3()
+    private val fieldNames = listOf("Now", "Up Next", "Soon")
     private suspend fun schedule(
         interaction: GuildChatInputCommandInteraction,
         response: DeferredPublicMessageInteractionResponseBehavior
     ) {
         val schedules = splat.getSchedules()
 
+        if (schedules == null) {
+            response.respond {
+                content = "There was an issue receiving the schedule or there's a splatfest going on which this bot does not currently support."
+            }
+            return
+        }
+
         response.respond {
             when(GameModes.values().first { it.name == interaction.command.strings["mode"] }) {
                 GameModes.TURF_WAR -> embed {
                     val upcoming = schedules.data.regularSchedules.nodes.take(3)
 
-                    field {
-                        name = "Now | ${Instant.parse(upcoming[0].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[0].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
-                        value = upcoming[0].regularMatchSetting.vsStages.joinToString(", ") { it.name }
-                    }
-
-                    field {
-                        name = "Up Next | ${Instant.parse(upcoming[1].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[1].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
-                        value = upcoming[1].regularMatchSetting.vsStages.joinToString(", ") { it.name }
-                    }
-
-                    field {
-                        name = "Soon | ${Instant.parse(upcoming[2].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[2].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
-                        value = upcoming[2].regularMatchSetting.vsStages.joinToString(", ") { it.name }
+                    for (i in 0..2) {
+                        field {
+                            name = "${fieldNames[i]} | ${Instant.parse(upcoming[i].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[i].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
+                            value = upcoming[i].regularMatchSetting.vsStages.joinToString(", ") { it.name }
+                        }
                     }
 
                     title = GameModes.TURF_WAR.displayName
@@ -98,9 +98,76 @@ class Splatoon : GuildCommand {
                         url = GameModes.TURF_WAR.icon
                     }
                 }
-                GameModes.ANARCHY_OPEN -> TODO()
-                GameModes.ANARCHY_SERIES -> TODO()
-                GameModes.X_BATTLE -> TODO()
+                GameModes.ANARCHY_OPEN -> embed {
+                    val upcoming = schedules.data.bankaraSchedules.nodes.take(3)
+
+                    for (i in 0..2) {
+                        field {
+                            val settings = upcoming[i].bankaraMatchSettings.find { it.mode == "OPEN" }!!
+                            name = "${fieldNames[i]} | ${settings.vsRule.name} | ${Instant.parse(upcoming[i].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[i].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
+                            value = settings.vsStages.joinToString(", ") { it.name }
+                        }
+                    }
+
+                    title = GameModes.ANARCHY_OPEN.displayName
+                    description = "The following maps are up next"
+                    color = GameModes.ANARCHY_OPEN.color
+                    val randStage = upcoming[0].bankaraMatchSettings.find { it.mode == "OPEN" }!!.vsStages.random()
+                    image = randStage.image.url
+                    footer {
+                        text = "Image: ${randStage.name}"
+                    }
+                    timestamp = Clock.System.now()
+                    thumbnail {
+                        url = GameModes.ANARCHY_OPEN.icon
+                    }
+                }
+                GameModes.ANARCHY_SERIES -> embed {
+                    val upcoming = schedules.data.bankaraSchedules.nodes.take(3)
+                    for (i in 0..2) {
+                        field {
+                            val settings = upcoming[i].bankaraMatchSettings.find { it.mode == "CHALLENGE" }!!
+                            name = "${fieldNames[i]} | ${settings.vsRule.name} | ${Instant.parse(upcoming[i].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[i].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
+                            value = settings.vsStages.joinToString(", ") { it.name }
+                        }
+                    }
+
+                    title = GameModes.ANARCHY_SERIES.displayName
+                    description = "The following maps are up next"
+                    color = GameModes.ANARCHY_SERIES.color
+                    val randStage = upcoming[0].bankaraMatchSettings.find { it.mode == "CHALLENGE" }!!.vsStages.random()
+                    image = randStage.image.url
+                    footer {
+                        text = "Image: ${randStage.name}"
+                    }
+                    timestamp = Clock.System.now()
+                    thumbnail {
+                        url = GameModes.ANARCHY_SERIES.icon
+                    }
+                }
+                GameModes.X_BATTLE -> embed {
+                    val upcoming = schedules.data.xSchedules.nodes.take(3)
+
+                    for (i in 0..2) {
+                        field {
+                            name = "${fieldNames[i]} | ${upcoming[i].xMatchSetting.vsRule.name} | ${Instant.parse(upcoming[i].startTime).toMessageFormat(DiscordTimestampStyle.ShortTime)} - ${Instant.parse(upcoming[i].endTime).toMessageFormat(DiscordTimestampStyle.ShortTime)}"
+                            value = upcoming[i].xMatchSetting.vsStages.joinToString(", ") { it.name }
+                        }
+                    }
+
+                    title = GameModes.X_BATTLE.displayName
+                    description = "The following maps are up next"
+                    color = GameModes.X_BATTLE.color
+                    val randStage = upcoming[0].xMatchSetting.vsStages.random()
+                    image = randStage.image.url
+                    footer {
+                        text = "Image: ${randStage.name}"
+                    }
+                    timestamp = Clock.System.now()
+                    thumbnail {
+                        url = GameModes.X_BATTLE.icon
+                    }
+                }
             }
         }
     }
